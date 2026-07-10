@@ -17,8 +17,9 @@ jobs:
         node-version: "latest"
         cache: "npm"
 
-    - name: Install modules
-      run: npm i wrangler@latest --legacy-peer-deps
+    # Просто ставим зависимости самого проекта, без установки глобального wrangler
+    - name: Install dependencies
+      run: npm ci --legacy-peer-deps
 
     - name: Build
       run: npx wrangler build
@@ -26,6 +27,10 @@ jobs:
     - name: Add Header
       run: cp ${{ github.workspace }}/dist/worker.js ${{ github.workspace }}/dist/worker-original.js && echo -e "/*!\n  * v2ray Subscription Worker (${{ github.sha }})\n  * Copyright 2024 Vahid Farid (https://twitter.com/vahidfarid)\n  * Licensed under GPLv3 (https://github.com/vfarid/v2ray-worker/blob/main/Licence.md)\n  */\n\n$(cat ${{ github.workspace }}/dist/worker.js)" > ${{ github.workspace }}/dist/worker.js
 
-    - name: Deploy
-      run: sed -i "s/KV_NAME/{{ secrets.KV_NAME }}/g" wrangler.toml && wrangler deploy --api-token ${{ secrets.CF_API_TOKEN }} --account-id ${{ secrets.CF_ACCOUNT_ID }}
-
+    # Используем официальный облачный деплоер от Cloudflare, он сам разберется с версиями
+    - name: Deploy to Cloudflare
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CF_API_TOKEN }}
+        accountId: ${{ secrets.CF_ACCOUNT_ID }}
+        command: deploy
